@@ -1,0 +1,17 @@
+{
+  "directories":{
+    "gif":"~/Pictures/wallpapers/gif",
+    "dark":"~/Pictures/wallpapers/dark",
+    "light":"~/Pictures/wallpapers/light"
+  },
+  "wallpaper": {
+    "fps":"60",
+    "resize-mode":"crop",
+    "filter":"lanczos3",//Nearest, Bilinear, CarmullRom, Mitchell
+    "transitions":["fade","wave","grow","outer","wipe","center"],
+    "positions":["center" , "top" , "left" , "right" , "bottom" , "top-left" , "top-right" , "bottom-left" , "bottom-right", "random"]
+    "duration":"1",
+    "steps":"5"
+  },
+  "colorscheme":["dark","light"]
+}
