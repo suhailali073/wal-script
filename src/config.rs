@@ -1,7 +1,7 @@
-use serde::Deserialize;
-use std::fs;
-use std::collections::HashMap;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::fs;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -18,7 +18,6 @@ pub struct Directories {
 
 #[derive(Deserialize, Debug)]
 pub struct Wallpaper {
-    pub fps: String,
     #[serde(rename = "resize-mode")]
     pub resize_mode: String,
     pub filter: String,
@@ -36,7 +35,6 @@ pub struct MonitorConfig {
 #[derive(Deserialize, Debug)]
 pub struct Monitor {
     pub name: String,
-    pub id: u32,
     pub height: u32,
     pub width: u32,
     #[serde(rename = "refresh-rate")]
@@ -45,5 +43,5 @@ pub struct Monitor {
 
 pub fn load_config<T: DeserializeOwned>(file_path: &str) -> T {
     let data = fs::read_to_string(file_path).expect(&format!("File not found: {}", file_path));
-serde_json::from_str(&data).expect(&format!("Error parsing JSON in: {}", file_path))
+    serde_json::from_str(&data).expect(&format!("Error parsing JSON in: {}", file_path))
 }

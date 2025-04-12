@@ -1,38 +1,87 @@
-use std::{fs, path::Path, env, process::exit};
-use image::{imageops::colorops, io::Reader as ImageReader};
-use std::fs::create_dir_all;
+use std::fs;
+use std::path::Path;
+use std::process::Command;
 
-fn compute_mean_luminance(image_path: &Path) -> f64 {
-    let img = ImageReader::open(image_path).unwrap().decode().unwrap();
-    let gray = colorops::grayscale(&img);
-    
-    let (width, height) = gray.dimensions();
-    let total_pixels = (width * height) as f64;
-    let sum: u64 = gray.pixels().map(|p| p.0[0] as u64).sum();
-    
-    sum as f64 / total_pixels / 255.0 // Normalize to [0,1]
-}
+pub fn wallsort(
+    wallpaper_dir: &str,
+    light_dir: &str,
+    dark_dir: &str,
+    threshold: f64, // e.g., 0.5
+) {
+    let entries = match fs::read_dir(wallpaper_dir) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Failed to read directory {}: {}", wallpaper_dir, e);
+            return;
+        }
+    };
 
-fn classify_and_move_images(wallpapers_dir: &Path, light_dir: &Path, dark_dir: &Path, threshold: f64) {
-    create_dir_all(light_dir).ok();
-    create_dir_all(dark_dir).ok();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
 
-    for entry in fs::read_dir(wallpapers_dir).unwrap() {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.is_file() {
-                if let Some(ext) = path.extension() {
-                    let ext = ext.to_string_lossy().to_lowercase();
-                    if ["jpg", "jpeg", "png", "bmp", "gif", "tiff"].contains(&ext.as_str()) {
-                        let brightness = compute_mean_luminance(&path);
-                        let dest = if brightness > threshold { light_dir } else { dark_dir };
-                        let dest_path = dest.join(path.file_name().unwrap());
+        // Use `file --mime-type` to check if it's an image
+        let output = Command::new("file")
+            .arg("--mime-type")
+            .arg("-b")
+            .arg(&path)
+            .output();
 
-                        fs::rename(&path, &dest_path).unwrap();
-                        println!("Moved {:?} -> {:?}", path, dest_path);
+        if let Ok(out) = output {
+            let mime = String::from_utf8_lossy(&out.stdout);
+            if !mime.starts_with("image/") {
+                continue;
+            }
+        } else {
+            continue;
+        }
+
+        // Use `magick` to get brightness (mean gray value)
+        let brightness_cmd = Command::new("magick")
+            .arg(&path)
+            .arg("-colorspace")
+            .arg("Gray")
+            .arg("-format")
+            .arg("%[fx:mean]")
+            .arg("info:")
+            .output();
+
+        let brightness = match brightness_cmd {
+            Ok(output) if output.status.success() => {
+                let val = String::from_utf8_lossy(&output.stdout)
+                    .trim()
+                    .parse::<f64>();
+                match val {
+                    Ok(b) => b,
+                    Err(_) => {
+                        eprintln!("Failed to parse brightness for {:?}", path);
+                        continue;
                     }
                 }
             }
+            _ => {
+                eprintln!("Failed to get brightness for {:?}", path);
+                continue;
+            }
+        };
+
+        // Move image based on brightness
+        let dest_dir = if brightness > threshold {
+            light_dir
+        } else {
+            dark_dir
+        };
+
+        let file_name = match path.file_name() {
+            Some(name) => name,
+            None => continue,
+        };
+
+        let dest_path = Path::new(dest_dir).join(file_name);
+        if let Err(e) = fs::rename(&path, &dest_path) {
+            eprintln!("Failed to move {:?} to {:?}: {}", path, dest_path, e);
         }
     }
 }

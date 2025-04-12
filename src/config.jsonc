@@ -10,8 +10,8 @@
     "filter":"lanczos3",//Nearest, Bilinear, CarmullRom, Mitchell
     "transitions":["fade","wave","grow","outer","wipe","center"],
     "positions":["center" , "top" , "left" , "right" , "bottom" , "top-left" , "top-right" , "bottom-left" , "bottom-right", "random"]
-    "duration":"1",
-    "steps":"5"
+    "duration":"3",
+    "steps":"90"
   },
   "colorscheme":["dark","light"]
 }
